@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Guest } from '../types/guest';
@@ -9,15 +9,12 @@ import {
   LogOut,
   RefreshCw,
   BarChart2,
-  Printer,
+  FileText,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { useReactToPrint } from 'react-to-print';
-
 import GuestModal from './GuestModal';
-import Analytics from './Analytics';
 
-// 24-hour time slots
+// For a quick 24-hour time-slot dropdown
 const TIME_SLOTS = [
   '0000-0100',
   '0100-0200',
@@ -45,7 +42,7 @@ const TIME_SLOTS = [
   '2300-2400',
 ];
 
-// Helper to see if arrival_time falls within a chosen slot
+// Helper to check if a guest's arrival_time falls within a chosen slot
 function isTimeInSlot(timeStr: string, slot: string) {
   if (!timeStr) return false;
   const [hrStr, minStr] = timeStr.substring(0, 5).split(':');
@@ -61,8 +58,9 @@ function isTimeInSlot(timeStr: string, slot: string) {
 
   const startTotal = startHour * 60 + startMin;
   let endTotal = endHour * 60 + endMin;
-  if (endTotal === 2400) endTotal = 1440;
-
+  if (endTotal === 2400) {
+    endTotal = 1440;
+  }
   return totalMinutes >= startTotal && totalMinutes < endTotal;
 }
 
@@ -77,28 +75,12 @@ export default function GuestList() {
     hotel: '',
     arrival_status: '',
   });
-
   const [rankOptions, setRankOptions] = useState<string[]>([]);
   const [hotelOptions, setHotelOptions] = useState<string[]>([]);
-
-  // Modals
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
-
   const { currentUser, logout } = useAuth();
 
-  // 1) "tableRef" for react-to-print
-  const tableRef = useRef<HTMLDivElement>(null);
-
-  // 2) Prepare the print function
-  const handlePrint = useReactToPrint({
-    content: () => tableRef.current, // The DOM to print
-    documentTitle: 'Guest_List',
-    onAfterPrint: () => toast.success('Print/Export complete!'),
-  });
-
-  // 3) Use effect to fetch data & set up real-time
   useEffect(() => {
     fetchGuests();
 
@@ -108,7 +90,6 @@ export default function GuestList() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'guests' },
         () => {
-          // Re-fetch whenever there's an insert/update/delete
           fetchGuests();
         }
       )
@@ -120,7 +101,6 @@ export default function GuestList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUser]);
 
-  // 4) Fetch from Supabase
   async function fetchGuests() {
     try {
       const { data, error } = await supabase
@@ -132,20 +112,23 @@ export default function GuestList() {
       if (data) {
         setGuests(data);
 
-        // Distinct Ranks & Hotels
-        const distinctRanks = Array.from(new Set(data.map((g) => g.rank).filter(Boolean))).sort();
-        const distinctHotels = Array.from(new Set(data.map((g) => g.hotel).filter(Boolean))).sort();
+        // Distinct Ranks & Hotels for dropdowns
+        const distinctRanks = Array.from(
+          new Set(data.map((g) => g.rank).filter(Boolean))
+        ).sort();
+        const distinctHotels = Array.from(
+          new Set(data.map((g) => g.hotel).filter(Boolean))
+        ).sort();
 
         setRankOptions(distinctRanks as string[]);
         setHotelOptions(distinctHotels as string[]);
       }
-    } catch (err) {
-      console.error('Error fetching guests:', err);
+    } catch (error) {
+      console.error('Error fetching guests:', error);
       toast.error('Failed to load guests');
     }
   }
 
-  // 5) Logout
   const handleLogout = async () => {
     try {
       await logout();
@@ -155,21 +138,22 @@ export default function GuestList() {
     }
   };
 
-  // 6) Filter changes
   const handleFilterChange = (field: string, value: string) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  // 7) Build filtered guest list
   const filteredGuests = guests.filter((guest) => {
-    // Search on name or rank
     const matchesSearchTerm =
       guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (guest.rank || '').toLowerCase().includes(searchTerm.toLowerCase());
 
     if (filters.rank && guest.rank !== filters.rank) return false;
-    if (filters.arrival_status && guest.arrival_status !== filters.arrival_status) return false;
-    if (filters.mode_of_transport && guest.mode_of_transport !== filters.mode_of_transport)
+    if (filters.arrival_status && guest.arrival_status !== filters.arrival_status)
+      return false;
+    if (
+      filters.mode_of_transport &&
+      guest.mode_of_transport !== filters.mode_of_transport
+    )
       return false;
     if (filters.hotel && guest.hotel !== filters.hotel) return false;
     if (filters.date && guest.date !== filters.date) return false;
@@ -178,10 +162,11 @@ export default function GuestList() {
       if (!guest.arrival_time) return false;
       if (!isTimeInSlot(guest.arrival_time, filters.time_slot)) return false;
     }
+
     return matchesSearchTerm;
   });
 
-  // 8) Color coding
+  // Color-coding for arrival_status
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Arrived':
@@ -195,21 +180,19 @@ export default function GuestList() {
     }
   };
 
-  // 9) Refresh action (explicitly reload or just fetch again)
-  const handleRefresh = () => {
-    // If you actually want to reload the entire page:
-    // window.location.reload();
-    // If you only want to re-fetch from Supabase (which also triggers a UI update):
-    fetchGuests();
-    toast.success('Data refreshed!');
+  const handleAnalytics = () => {
+    toast.success('Analytics button clicked! Feature to be implemented.');
+  };
+
+  const handleReports = () => {
+    toast.success('Reports button clicked! Feature to be implemented.');
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+        {/* Header Section */}
         <div className="flex flex-col md:flex-row md:justify-between items-center mb-6 gap-4">
-          {/* Title */}
           <div className="flex items-center">
             <Users className="h-8 w-8 text-indigo-600 mr-3" />
             <div>
@@ -219,37 +202,28 @@ export default function GuestList() {
               <p className="text-gray-600">Guest Reception 11th CRU</p>
             </div>
           </div>
-
-          {/* Buttons */}
           <div className="flex items-center space-x-4">
-            {/* Refresh */}
             <button
-              onClick={handleRefresh}
+              onClick={fetchGuests}
               className="flex items-center px-4 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-all transform hover:scale-105"
             >
               <RefreshCw className="h-5 w-5 mr-2" />
               Refresh
             </button>
-
-            {/* Analytics */}
             <button
-              onClick={() => setAnalyticsOpen(true)}
+              onClick={handleAnalytics}
               className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
             >
               <BarChart2 className="h-5 w-5 mr-2" />
               Analytics
             </button>
-
-            {/* Print/Export */}
             <button
-              onClick={() => handlePrint()} 
+              onClick={handleReports}
               className="flex items-center px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-all transform hover:scale-105 shadow-lg"
             >
-              <Printer className="h-5 w-5 mr-2" />
-              Print/Export
+              <FileText className="h-5 w-5 mr-2" />
+              Reports
             </button>
-
-            {/* Add Guest */}
             <button
               onClick={() => {
                 setSelectedGuest(null);
@@ -260,8 +234,6 @@ export default function GuestList() {
               <UserPlus className="h-5 w-5 mr-2" />
               Add Guest
             </button>
-
-            {/* Logout */}
             <button
               onClick={handleLogout}
               className="flex items-center px-4 py-2 text-gray-700 hover:text-red-600 transition-colors"
@@ -318,7 +290,9 @@ export default function GuestList() {
           <select
             className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             value={filters.mode_of_transport}
-            onChange={(e) => handleFilterChange('mode_of_transport', e.target.value)}
+            onChange={(e) =>
+              handleFilterChange('mode_of_transport', e.target.value)
+            }
           >
             <option value="">Mode of Transport</option>
             <option value="Flight">Flight</option>
@@ -352,25 +326,29 @@ export default function GuestList() {
           </select>
         </div>
 
-        {/* Table to Print */}
-        <div ref={tableRef} className="w-full overflow-x-auto rounded-lg shadow-lg bg-white p-4">
+        {/* Guest List Table */}
+        <div className="w-full rounded-lg shadow-lg overflow-hidden">
+          {/* 
+            table-fixed + break-words ensures each column won't grow too large.
+            If you have many columns, the table remains at w-full and text wraps.
+          */}
           <table className="table-fixed w-full text-sm md:text-base">
             <thead className="bg-indigo-100">
               <tr className="text-left">
-                <th className="w-[50px] px-2 py-2 font-medium text-gray-700">S. No.</th>
-                <th className="w-[60px] px-2 py-2 font-medium text-gray-700">Rank</th>
-                <th className="w-[120px] px-2 py-2 font-medium text-gray-700">Name</th>
-                <th className="w-[80px] px-2 py-2 font-medium text-gray-700">Time</th>
-                <th className="w-[90px] px-2 py-2 font-medium text-gray-700">Mode</th>
-                <th className="w-[120px] px-2 py-2 font-medium text-gray-700">Transport</th>
-                <th className="w-[90px] px-2 py-2 font-medium text-gray-700">Date</th>
-                <th className="w-[80px] px-2 py-2 font-medium text-gray-700">Occupants</th>
-                <th className="w-[100px] px-2 py-2 font-medium text-gray-700">Hotel</th>
-                <th className="w-[100px] px-2 py-2 font-medium text-gray-700">Remarks</th>
-                <th className="w-[100px] px-2 py-2 font-medium text-gray-700">Service</th>
-                <th className="w-[120px] px-2 py-2 font-medium text-gray-700">Received By</th>
-                <th className="w-[100px] px-2 py-2 font-medium text-gray-700">Status</th>
-                <th className="w-[60px] px-2 py-2 font-medium text-gray-700">Actions</th>
+                <th className="px-4 py-2 font-medium text-gray-700">S. No.</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Rank</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Name</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Arrival Time</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Mode of Transport</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Transport Details</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Date</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Occupants</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Hotel</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Remarks</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Service Type</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Received By</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Arrival Status</th>
+                <th className="px-4 py-2 font-medium text-gray-700">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -379,41 +357,43 @@ export default function GuestList() {
                   key={guest.id}
                   className="border-b hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-2 py-2">{index + 1}</td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[80px]">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[100px]">
                     {guest.rank || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.name}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[100px]">
                     {guest.arrival_time || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.mode_of_transport || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.transport_details || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[100px]">
                     {guest.date || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
-                    {guest.occupants ?? '-'}
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[80px]">
+                    {guest.occupants || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.hotel || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.remarks || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.service_type || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[120px]">
                     {guest.received_by || '-'}
                   </td>
-                  <td className="px-2 py-2 break-words whitespace-normal">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[100px]">
                     <span
                       className={`px-3 py-1 rounded-full text-sm ${getStatusColor(
                         guest.arrival_status || ''
@@ -422,7 +402,7 @@ export default function GuestList() {
                       {guest.arrival_status || 'Pending'}
                     </span>
                   </td>
-                  <td className="px-2 py-2">
+                  <td className="px-4 py-2 break-words whitespace-normal max-w-[80px]">
                     <button
                       onClick={() => {
                         setSelectedGuest(guest);
@@ -453,15 +433,8 @@ export default function GuestList() {
           guest={selectedGuest}
           onSuccess={() => {
             setIsModalOpen(false);
-            fetchGuests(); // re-fetch on success
+            fetchGuests();
           }}
-        />
-
-        {/* Analytics Modal */}
-        <Analytics
-          isOpen={analyticsOpen}
-          onClose={() => setAnalyticsOpen(false)}
-          guests={filteredGuests}
         />
       </div>
     </div>
