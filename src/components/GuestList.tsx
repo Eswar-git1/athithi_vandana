@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { Guest } from '../types/guest';
@@ -43,11 +43,16 @@ const TIME_SLOTS = [
   '2100-2200',
   '2200-2300',
   '2300-2400',
+   'Not Specified',
 ];
 
 // Helper to see if arrival_time falls within a chosen slot
 function isTimeInSlot(timeStr: string, slot: string) {
-  if (!timeStr) return false;
+  if (slot === 'Not Specified') {
+    return !timeStr; // If slot is "Not Specified", check for blanks
+  }
+  if (!timeStr) return false; // Ensure other slots exclude blanks
+
   const [hrStr, minStr] = timeStr.substring(0, 5).split(':');
   const hour = parseInt(hrStr, 10);
   const minute = parseInt(minStr, 10);
@@ -76,6 +81,7 @@ export default function GuestList() {
     mode_of_transport: '',
     hotel: '',
     arrival_status: '',
+    service_type: '', // Add this
   });
 
   const [rankOptions, setRankOptions] = useState<string[]>([]);
@@ -162,21 +168,21 @@ export default function GuestList() {
 
   // 7) Build filtered guest list
   const filteredGuests = guests.filter((guest) => {
-    // Search on name or rank
+    // Existing filters
     const matchesSearchTerm =
       guest.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (guest.rank || '').toLowerCase().includes(searchTerm.toLowerCase());
-
+  
     if (filters.rank && guest.rank !== filters.rank) return false;
     if (filters.arrival_status && guest.arrival_status !== filters.arrival_status) return false;
     if (filters.mode_of_transport && guest.mode_of_transport !== filters.mode_of_transport)
       return false;
     if (filters.hotel && guest.hotel !== filters.hotel) return false;
     if (filters.date && guest.date !== filters.date) return false;
-
+    if (filters.service_type && guest.service_type !== filters.service_type) return false; // New filter
+  
     if (filters.time_slot) {
-      if (!guest.arrival_time) return false;
-      if (!isTimeInSlot(guest.arrival_time, filters.time_slot)) return false;
+      if (!isTimeInSlot(guest.arrival_time || '', filters.time_slot)) return false;
     }
     return matchesSearchTerm;
   });
@@ -302,18 +308,19 @@ export default function GuestList() {
             onChange={(e) => handleFilterChange('date', e.target.value)}
           />
           {/* Time Slot Filter */}
-          <select
+            {/* Time Slot Filter */}
+            <select
             className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             value={filters.time_slot}
             onChange={(e) => handleFilterChange('time_slot', e.target.value)}
-          >
+            >
             <option value="">All Time Slots</option>
             {TIME_SLOTS.map((slot) => (
               <option key={slot} value={slot}>
-                {slot}
+              {slot}
               </option>
             ))}
-          </select>
+            </select>
           {/* Mode of Transport Filter */}
           <select
             className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -339,6 +346,16 @@ export default function GuestList() {
               </option>
             ))}
           </select>
+            {/* Service Type Filter */}
+            <select
+            className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            value={filters.service_type}
+            onChange={(e) => handleFilterChange('service_type', e.target.value)}
+            >
+            <option value="">All Service Types</option>
+            <option value="Veteran">Veteran</option>
+            <option value="Serving">Serving</option>
+            </select>
           {/* Arrival Status Filter */}
           <select
             className="block px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"

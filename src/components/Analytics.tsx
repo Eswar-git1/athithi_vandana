@@ -85,6 +85,7 @@ export default function Analytics({ isOpen, onClose, guests }: AnalyticsProps) {
         {
           label,
           data: dataVals,
+          backgroundColor: [] as string[], // Initialize with empty array
         },
       ],
     };

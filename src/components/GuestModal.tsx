@@ -25,14 +25,14 @@ export default function GuestModal({
     rank: '',
     name: '',
     arrival_time: '',
-    mode_of_transport: '',
+    mode_of_transport: undefined,
     arriving_from: '',
     transport_details: '',
     date: '',
     occupants: 1,
     hotel: '',
     remarks: '',
-    service_type: '',
+    service_type: undefined,
     time_slot: '',
     arrival_status: 'Pending',
     received_by: currentUser?.email || '',
@@ -192,7 +192,7 @@ export default function GuestModal({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  mode_of_transport: e.target.value,
+                  mode_of_transport: e.target.value as "Flight" | "Train" | "Road" | "Own Arrangement" | undefined,
                 })
               }
             >
@@ -299,7 +299,7 @@ export default function GuestModal({
               onChange={(e) =>
                 setFormData({
                   ...formData,
-                  service_type: e.target.value,
+                  service_type: e.target.value as "Veteran" | "Serving" | undefined,
                 })
               }
             >
@@ -321,7 +321,7 @@ export default function GuestModal({
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               value={formData.arrival_status || 'Pending'}
               onChange={(e) =>
-                setFormData({ ...formData, arrival_status: e.target.value })
+                setFormData({ ...formData, arrival_status: e.target.value as "Arrived" | "Pending" | "Not show" })
               }
             >
               <option value="Pending">Pending</option>
