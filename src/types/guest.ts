@@ -11,7 +11,7 @@ export interface Guest {
   hotel?: string;
   service_type?: 'Veteran' | 'Serving';
   time_slot?: string; // Example: '0000-0100'
-  arrival_status?: 'Arrived' | 'Pending' | 'Not show';
+  arrival_status?: "Arrived" | "Pending" | "Not show" | "Departed"; // Add Departed here
   remarks?: string;
   received_by?: string; // Email of the logged-in user
 }

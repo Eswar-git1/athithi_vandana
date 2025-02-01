@@ -48,6 +48,9 @@ export default function Analytics({ isOpen, onClose, guests }: AnalyticsProps) {
   const arrivedCount = guests.filter((g) => g.arrival_status === 'Arrived').length;
   const pendingCount = guests.filter((g) => g.arrival_status === 'Pending').length;
   const notShowCount = guests.filter((g) => g.arrival_status === 'Not show').length;
+  const departedCount = guests.filter((g) => g.arrival_status === 'Departed').length;
+
+  
 
   // 2) Filter an array of only arrived guests:
   const arrivedGuests = useMemo(
@@ -239,6 +242,13 @@ export default function Analytics({ isOpen, onClose, guests }: AnalyticsProps) {
               </span>
               <span className="text-sm text-gray-600">Not Show</span>
             </div>
+            <div className="flex flex-col items-center">
+              <span className="text-xl font-bold text-blue-700">
+                {departedCount}
+              </span>
+              <span className="text-sm text-gray-600">Departed</span>
+            </div>
+
             <div className="flex flex-col items-center">
               <span className="text-xl font-bold text-gray-800">
                 {guests.length}
