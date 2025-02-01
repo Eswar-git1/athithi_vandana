@@ -321,14 +321,19 @@ export default function GuestModal({
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
               value={formData.arrival_status || 'Pending'}
               onChange={(e) =>
-                setFormData({ ...formData, arrival_status: e.target.value as "Arrived" | "Pending" | "Not show" })
+                setFormData({
+                  ...formData,
+                  arrival_status: e.target.value as 'Arrived' | 'Pending' | 'Not show' | 'Departed',
+                })
               }
             >
               <option value="Pending">Pending</option>
               <option value="Arrived">Arrived</option>
               <option value="Not show">Not show</option>
+              <option value="Departed">Departed</option>
             </select>
           </div>
+
 
           <div>
             <label htmlFor="remarks" className="block text-sm font-medium text-gray-700">

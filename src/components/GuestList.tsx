@@ -366,7 +366,9 @@ export default function GuestList() {
             <option value="Arrived">Arrived</option>
             <option value="Pending">Pending</option>
             <option value="Not show">Not show</option>
+            <option value="Departed">Departed</option>
           </select>
+
         </div>
 
         {/* Table to Print */}
